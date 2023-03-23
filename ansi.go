@@ -34,5 +34,10 @@ func (c *Cursor) move(x, y int) {
 }
 
 func (c *Cursor) left(num int) {
-	c.cx -= num
+	c.move(c.cx-num, c.cy)
+	// c.cx -= num
+}
+
+func (c *Cursor) down(num int) {
+	c.cy += num
 }

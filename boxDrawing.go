@@ -4,8 +4,12 @@ import "fmt"
 
 func drawThinCorner(corner string) {
 	switch corner {
+	case "left-t":
+		fmt.Printf("\u251C")
 	case "top-left":
 		fmt.Printf("\u256D")
+	case "right-t":
+		fmt.Printf("\u2524")
 	case "top-right":
 		fmt.Printf("\u256E")
 	case "bottom-left":
