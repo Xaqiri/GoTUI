@@ -13,6 +13,10 @@ import (
 //       where each panel points left, right, up, and down
 // TODO: Add button to create a custom panel rather than splitting current
 //       in half
+// TODO: Move logic for splitting panels to separate functions
+// TODO: Fix drawing logic to stop screen flickering
+// TODO: Make separate files for Terminal and Panel
+// TODO: Copy cursor code from GoEditor
 
 type Terminal struct {
 	w, h             int
@@ -69,8 +73,8 @@ func main() {
 	term.init()
 	defer term.restore()
 	help := false
+	h := createHelpPanel(term)
 	for {
-		h := createHelpPanel(term)
 		term.activePanel = &term.panels[term.activePanelIndex]
 		term.cursor.hideCursor()
 		term.cursor.clear()
@@ -81,18 +85,12 @@ func main() {
 		if help {
 			term.cursor.hideCursor()
 			h.drawContent()
-			h.draw(&term, true)
+			h.draw(&term, false)
 		}
 		if !help {
 			term.cursor.showCursor()
 		}
 		term.cursor.move(term.activePanel.cursor.cx, term.activePanel.cursor.cy)
-		//       if help {
-		//          term.cursor.hideCursor()
-		//         h := createHelpPanel(term)
-		//        h.draw(&term)
-		//       h.drawContent()
-		//  }
 		inp, _, _ := term.reader.ReadRune()
 		switch inp {
 		case esc:
@@ -102,25 +100,9 @@ func main() {
 			term.cursor.clear()
 			return
 		case ctrlV:
-			p := term.activePanel
-			if p.w/2 > len(p.title) {
-				term.cursor.clear()
-				newPanel := Panel{}
-				term.activePanel.w = p.w / 2
-				newPanel.init(p.t, p.l+p.w, p.w, p.h, "Panel")
-				term.panels = append(term.panels, newPanel)
-				term.activePanelIndex = len(term.panels) - 1
-			}
+			splitPanelVertically(&term)
 		case ctrlS:
-			p := term.activePanel
-			if p.h/2 > 5 {
-				term.cursor.clear()
-				newPanel := Panel{}
-				term.activePanel.h = p.h / 2
-				newPanel.init(p.t+p.h, p.l, p.w, p.h, "Panel")
-				term.panels = append(term.panels, newPanel)
-				term.activePanelIndex++
-			}
+			splitPanelHorizontally(&term)
 		case ctrlH:
 			help = !help
 		case tab:
@@ -145,6 +127,16 @@ func main() {
 				p.text[p.row] += string(inp)
 				p.cursor.cx++
 				p.col++
+			} else {
+				if inp == 'j' {
+					h.t += 1
+				} else if inp == 'k' {
+					h.t -= 1
+				} else if inp == 'h' {
+					h.l -= 1
+				} else if inp == 'l' {
+					h.l += 1
+				}
 			}
 		}
 	}
@@ -161,9 +153,33 @@ func debug(t *Terminal) {
 	}
 }
 
+func splitPanelVertically(term *Terminal) {
+	p := term.activePanel
+	if p.w/2 > len(p.title) {
+		term.cursor.clear()
+		newPanel := Panel{}
+		term.activePanel.w = p.w / 2
+		newPanel.init(p.t, p.l+p.w, p.w, p.h, "Panel")
+		term.panels = append(term.panels, newPanel)
+		term.activePanelIndex = len(term.panels) - 1
+	}
+}
+
+func splitPanelHorizontally(term *Terminal) {
+	p := term.activePanel
+	if p.h/2 > 5 {
+		term.cursor.clear()
+		newPanel := Panel{}
+		term.activePanel.h = p.h / 2
+		newPanel.init(p.t+p.h, p.l, p.w, p.h, "Panel")
+		term.panels = append(term.panels, newPanel)
+		term.activePanelIndex++
+	}
+}
+
 func createHelpPanel(t Terminal) Panel {
 	p := Panel{}
-	p.init(0, 0, t.w, 0, "Help")
+	p.init(10, 20, t.w/3, 0, "Help")
 	p.text = []string{
 		"Escape: Close this menu",
 		"^Q: Quit",
@@ -173,7 +189,7 @@ func createHelpPanel(t Terminal) Panel {
 		"Tab: Move to the next panel",
 		"Shift-tab: Move to the previous panel",
 	}
-	p.t = t.h - len(p.text) - 2
+	// p.t = t.h - len(p.text)
 	p.h = len(p.text) + 2
 	return p
 }
