@@ -29,8 +29,8 @@ func (c *Cursor) clearLine() {
 }
 
 func (c *Cursor) move(x, y int) {
-	c.cx, c.cy = x+1, y+1
-	fmt.Printf("%s[%d;%dH", string(esc), y+1, x+1)
+	c.cx, c.cy = x, y
+	fmt.Printf("%s[%d;%dH", string(esc), y, x)
 }
 
 func (c *Cursor) left(num int) {
