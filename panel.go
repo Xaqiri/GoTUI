@@ -20,6 +20,7 @@ type Panel struct {
 	panelType        PanelType
 	border           int
 	menuItems        map[string]Panel
+	orientation      dir
 }
 
 func (p *Panel) init(t, l, w, h int, title string) {
@@ -68,22 +69,53 @@ func (p *Panel) draw(t *Terminal) {
 	}
 }
 
+func (p *Panel) drawHelp(t *Terminal) {
+	p.drawContent(t)
+	if p.border != 0 {
+		// Draw top bar
+		t.cursor.move(p.l, p.t)
+		drawThinCorner("left-t")
+		drawHorizontalLine(p.w - len(p.title) - p.border*2)
+		fmt.Printf("%v", p.title)
+		drawThinCorner("top-t")
+		// Draw left bar
+		t.cursor.move(p.l, p.t+p.border)
+		drawLeftVerticalLine(p.h - p.border*2)
+		// Draw right bar
+		t.cursor.move(p.l+p.w-p.border, p.t+p.border)
+		if p.l+p.w > t.w {
+			drawRightVerticalLine(p.h - p.border*2)
+		} else {
+			drawLeftVerticalLine(p.h - p.border*2)
+		}
+		// Draw bottom bar
+		t.cursor.move(p.l, p.t+p.h-p.border)
+		drawThinCorner("bottom-left")
+		drawHorizontalLine(p.w - p.border*2)
+		drawThinCorner("bottom-right")
+	}
+}
+
 func (p *Panel) drawContent(t *Terminal) {
 	x, y := p.cursor.cx, p.cursor.cy
 	active := (t.activePanel.title == p.title)
-	for i := 0; i < p.h; i++ {
-		p.cursor.move(p.l+p.border, p.t+i+p.border)
-		if i > len(p.text)-1 {
-			break
+	if p.orientation == vertical {
+		for i := 0; i < p.h; i++ {
+			p.cursor.move(p.l+p.border, p.t+i+p.border)
+			if i > len(p.text)-1 {
+				break
+			}
+			if p.panelType == menu && active && i+p.yoffset == p.row {
+				fmt.Printf(reverseColors)
+				fmt.Print(p.text[i+p.yoffset])
+				fmt.Printf(resetColors)
+			} else {
+				fmt.Print(p.text[i+p.yoffset])
+			}
+			p.cursor.clearLine()
 		}
-		if p.panelType == menu && active == true && i+p.yoffset == p.row {
-			fmt.Printf(reverseColors)
-			fmt.Print(p.text[i+p.yoffset])
-			fmt.Printf(resetColors)
-		} else {
-			fmt.Print(p.text[i+p.yoffset])
-		}
-		p.cursor.clearLine()
+	} else if p.orientation == horizontal {
+		// TBI
 	}
 	p.cursor.cx, p.cursor.cy = x, y
 }
@@ -97,11 +129,24 @@ func (p *Panel) updateCursorPosition(x, y int) {
 		p.col += x
 		p.cursor.cx += x
 	}
-
+	// ydif := 0
+	// if p.cursor.cy+y <= p.h && p.cursor.cy+y <= len(p.text)-p.yoffset {
+	// ydif = p.cursor.cy + y
+	// e.moveDocCursor(p.cursor.cx, p.cursor.cy+n)
+	// } else if p.cursor.cy+y > p.h && len(p.text) > p.h {
+	// p.yoffset += y
+	// if p.yoffset+p.h > len(p.text) {
+	// p.yoffset = len(p.text) - p.h
+	// }
+	// ydif = p.cursor.cy
+	// e.moveDocCursor(e.cx, e.cy)
+	// }
+	// p.row = ydif + p.yoffset - p.t
+	// p.cursor.cy = ydif
 	if p.row+y < 0 {
 		p.cursor.cy = 0
 		p.row += y
-		p.yoffset += y
+		p.yoffset -= y
 		if p.yoffset < 0 {
 			p.yoffset = 0
 		}
@@ -113,7 +158,7 @@ func (p *Panel) updateCursorPosition(x, y int) {
 		if p.yoffset < len(p.text)-p.h {
 			p.yoffset += y
 		}
-	} else {
+	} else if p.row+y < p.h-p.border*2 {
 		p.row += y
 		p.cursor.cy += y
 	}

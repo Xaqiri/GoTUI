@@ -8,77 +8,69 @@ package main
 // TODO: Fix drawing logic to stop screen flickering
 // TODO: Clean up panel drawing code
 // TODO: Copy cursor code from GoEditor
+//       Cursor code's a mess right now, terminal cursor should be for
+//       drawing everything and the panel cursor should only keep
+//       track of the inner row/column
+// TODO: Look up how to implement a timer here
+// TODO: Add support for vertical and horizontal menu bars
 
-func (t *Terminal) createTestUi() {
+func (t *Terminal) createMenuTestUi() {
 	h := createHelpPanel(*t)
-	topPanel, midPanel, botPanel := Panel{}, Panel{}, Panel{}
+	topPanel := Panel{}
 	topPanel.init(1, 1, t.w, 3, "Title Bar")
 	topPanel.panelType = menu
-	topPanel.text = []string{"Help"}
+	topPanel.text = []string{"File", "Help"}
 	topPanel.menuItems = map[string]Panel{topPanel.text[0]: h}
 	topPanel.border = 1
-	midPanel.init(4, 1, t.w, t.h-6, "Panel 0")
-	midPanel.border = 1
-	botPanel.init(t.h-2, 1, t.w, 3, "Info")
-	botPanel.text = []string{"", "", ""}
-	botPanel.border = 1
-	t.panels = []Panel{topPanel, midPanel, botPanel}
-	t.activePanelIndex = 2
+	topPanel.orientation = horizontal
+	// midPanel.init(4, 1, t.w, t.h-6, "Panel 0")
+	// midPanel.border = 1
+	// midPanel.text = []string{"", ""}
+	// botPanel.init(t.h-2, 1, t.w, 3, "Info")
+	// botPanel.text = []string{"", "", ""}
+	// botPanel.border = 1
+	t.panels = []Panel{topPanel}
+	t.activePanelIndex = 0
+	t.activePanel = &t.panels[t.activePanelIndex]
 }
 
 func main() {
-	help := false
+	help, menuBar := false, true
 	var term Terminal
 	term.init()
 	defer term.restore()
-	term.createTestUi()
+	term.createMenuTestUi()
+
+	h := term.panels[0].menuItems["Help"]
+
 	for {
 		term.cursor.hideCursor()
-
-		if help && term.selection == "" {
+		term.cursor.clear()
+		if menuBar && !help {
 			term.activePanel = &term.panels[0]
-		}
-		if !help {
-			term.activePanel = &term.panels[1]
+		} else if menuBar && help {
+			term.activePanel = &h
+		} else if !menuBar && !help {
 			term.selection = ""
-			term.cursor.clear()
+			// term.activePanel = &term.panels[1]
 		}
 
-		// term.activePanel = &term.panels[term.activePanelIndex]
-		term.panels[len(term.panels)-1].text[0] = "Panels: " + term.activePanel.title
-		term.panels[len(term.panels)-1].text[1] = "Selection: " + term.selection
-
+		// term.panels[2].text[0] = strconv.FormatBool(help) + " " + term.activePanel.title + " " + strconv.Itoa(term.activePanel.row)
+		// term.panels[2].text[1] = strconv.Itoa(term.activePanel.row)
 		for _, p := range term.panels {
 			p.draw(&term)
-			if term.selection != "" {
-				old := term.activePanel
-				p := old.menuItems[term.selection]
-				term.activePanel = &p
-				term.activePanel.draw(&term)
-
-			}
 		}
-		// if term.selection != "" {
-		// old := term.activePanel
-		// p := old.menuItems[term.selection]
-		// term.activePanel = &p
-		// term.activePanel.draw(&term)
-		// term.activePanel = old
-		// }
+
+		if help {
+			term.activePanel.drawHelp(&term)
+		}
 
 		if term.activePanel.panelType != menu {
 			term.cursor.showCursor()
 		}
 
-		// term.panels[len(term.panels)-1].text[0] = "Cursor X: " + strconv.Itoa(term.activePanel.cursor.cx) + " Cursor Y:" + strconv.Itoa(term.activePanel.cursor.cy) + " Col: " + strconv.Itoa(term.activePanel.col) + " Row: " + strconv.Itoa(term.activePanel.row)
-		// botPanel.text[0] = "Width: " + strconv.Itoa(term.activePanel.w) + " Height:" + strconv.Itoa(term.activePanel.h)
-		// term.panels[len(term.panels)-1].text[0] += " Y-Offset: " + strconv.Itoa(term.activePanel.yoffset)
-		// term.activePanel.line = term.activePanel.text[term.activePanel.row]
-		// botPanel.text[0] += " T-Width: " + strconv.Itoa(term.w) + " T-Height: " + strconv.Itoa(term.h)
 		term.cursor.move(term.activePanel.cursor.cx, term.activePanel.cursor.cy)
 		inp, _, _ := term.reader.ReadRune()
-		term.panels[len(term.panels)-1].text[2] = "Key: " + string(inp)
-
 		switch inp {
 		case esc:
 			help = false
@@ -91,7 +83,10 @@ func main() {
 		case ctrlS:
 			term.splitPanel(horizontal)
 		case ctrlH:
-			help = !help
+			if !help {
+				menuBar = !menuBar
+			}
+			help = false
 		case plus:
 			term.activePanel.w++
 			term.activePanel.h++
@@ -119,6 +114,9 @@ func main() {
 				t.col = 0
 				t.row++
 			} else {
+				if t.text[t.row] == "Help" {
+					help = true
+				}
 				term.selection = t.text[t.row]
 			}
 		case del:
@@ -144,6 +142,9 @@ func main() {
 			} else {
 				t := term.activePanel
 				if inp == 'j' {
+					// term.activePanel.updateCursorPosition(0, 1)
+
+					// return
 					t.row++
 					if t.row > len(t.text)-1 {
 						t.row = 0
@@ -175,7 +176,7 @@ func createHelpPanel(t Terminal) Panel {
 		"Shift-tab: Move to the previous panel",
 	}
 	p.h = len(p.text) + p.border*2
-	p.w = len(p.text[len(p.text)-1])
+	p.w = len(p.text[len(p.text)-1]) + 2
 	p.row = 0
 	p.line = p.text[0]
 	return p
