@@ -1,14 +1,5 @@
 package main
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"strconv"
-
-	"golang.org/x/term"
-)
-
 // TODO: Add movement between panels with ^(hjkl)
 //       Might need to make Terminal.panels a linked list
 //       where each panel points left, right, up, and down
@@ -16,91 +7,78 @@ import (
 //       in half
 // TODO: Fix drawing logic to stop screen flickering
 // TODO: Clean up panel drawing code
-// TODO: Make separate files for Terminal
 // TODO: Copy cursor code from GoEditor
-// TODO: Copy code for changing modes from GoEditor
 
-type PanelType int
-
-const (
-	text = iota
-	menu
-)
-
-type Terminal struct {
-	w, h             int
-	reader           *bufio.Reader
-	writer           *bufio.Writer
-	cursor           Cursor
-	panels           []Panel
-	activePanel      *Panel
-	activePanelIndex int
-	initialState     *term.State
-}
-
-func (t *Terminal) init() {
-	var cursor Cursor
-
-	t.w, t.h, _ = term.GetSize(0)
-	t.cursor = cursor
-	t.cursor.init(1, 1)
-	t.reader = bufio.NewReader(os.Stdin)
-	t.writer = bufio.NewWriter(os.Stdout)
-	t.initialState, _ = term.MakeRaw(0)
-	p := Panel{}
-	p.init(1, 1, t.w, t.h-5, "Panel")
-	p.border = true
-	p.text[0] = "*"
-	for i := 1; i < 20; i++ {
-		if i%5 == 0 {
-			p.text = append(p.text, "*")
-		} else {
-			p.text = append(p.text, "#")
-		}
-	}
-	t.panels = []Panel{p}
-	t.activePanelIndex = 0
-}
-
-func (t *Terminal) restore() {
-	t.cursor.showCursor()
-	term.Restore(0, t.initialState)
+func (t *Terminal) createTestUi() {
+	h := createHelpPanel(*t)
+	topPanel, midPanel, botPanel := Panel{}, Panel{}, Panel{}
+	topPanel.init(1, 1, t.w, 3, "Title Bar")
+	topPanel.panelType = menu
+	topPanel.text = []string{"Help"}
+	topPanel.menuItems = map[string]Panel{topPanel.text[0]: h}
+	topPanel.border = 1
+	midPanel.init(4, 1, t.w, t.h-6, "Panel 0")
+	midPanel.border = 1
+	botPanel.init(t.h-2, 1, t.w, 3, "Info")
+	botPanel.text = []string{"", "", ""}
+	botPanel.border = 1
+	t.panels = []Panel{topPanel, midPanel, botPanel}
+	t.activePanelIndex = 2
 }
 
 func main() {
-	botPanel := Panel{}
+	help := false
 	var term Terminal
 	term.init()
 	defer term.restore()
-	help := false
-	h := createHelpPanel(term)
-	botPanel.init(term.h-3, 1, term.w, 1, "Info")
+	term.createTestUi()
 	for {
-		term.activePanel = &term.panels[term.activePanelIndex]
 		term.cursor.hideCursor()
-		term.cursor.clear()
-		for _, p := range term.panels {
-			p.drawContent()
-			if p.border {
-				p.draw(&term)
-			}
-		}
-		botPanel.text[0] = "Cursor X: " + strconv.Itoa(term.activePanel.cursor.cx) + " Cursor Y:" + strconv.Itoa(term.activePanel.cursor.cy) + " Col: " + strconv.Itoa(term.activePanel.col) + " Row: " + strconv.Itoa(term.activePanel.row)
-		// botPanel.text[0] += " Y-Offset: " + strconv.Itoa(term.activePanel.yoffset)
-		term.activePanel.line = term.activePanel.text[term.activePanel.row]
-		botPanel.text[0] += " Height: " + strconv.Itoa(term.h) + " Width: " + strconv.Itoa(term.w)
-		botPanel.drawContent()
-		// botPanel.draw(&term, false)
-		if help {
-			term.cursor.hideCursor()
-			h.drawContent()
-			h.draw(&term)
+
+		if help && term.selection == "" {
+			term.activePanel = &term.panels[0]
 		}
 		if !help {
+			term.activePanel = &term.panels[1]
+			term.selection = ""
+			term.cursor.clear()
+		}
+
+		// term.activePanel = &term.panels[term.activePanelIndex]
+		term.panels[len(term.panels)-1].text[0] = "Panels: " + term.activePanel.title
+		term.panels[len(term.panels)-1].text[1] = "Selection: " + term.selection
+
+		for _, p := range term.panels {
+			p.draw(&term)
+			if term.selection != "" {
+				old := term.activePanel
+				p := old.menuItems[term.selection]
+				term.activePanel = &p
+				term.activePanel.draw(&term)
+
+			}
+		}
+		// if term.selection != "" {
+		// old := term.activePanel
+		// p := old.menuItems[term.selection]
+		// term.activePanel = &p
+		// term.activePanel.draw(&term)
+		// term.activePanel = old
+		// }
+
+		if term.activePanel.panelType != menu {
 			term.cursor.showCursor()
 		}
+
+		// term.panels[len(term.panels)-1].text[0] = "Cursor X: " + strconv.Itoa(term.activePanel.cursor.cx) + " Cursor Y:" + strconv.Itoa(term.activePanel.cursor.cy) + " Col: " + strconv.Itoa(term.activePanel.col) + " Row: " + strconv.Itoa(term.activePanel.row)
+		// botPanel.text[0] = "Width: " + strconv.Itoa(term.activePanel.w) + " Height:" + strconv.Itoa(term.activePanel.h)
+		// term.panels[len(term.panels)-1].text[0] += " Y-Offset: " + strconv.Itoa(term.activePanel.yoffset)
+		// term.activePanel.line = term.activePanel.text[term.activePanel.row]
+		// botPanel.text[0] += " T-Width: " + strconv.Itoa(term.w) + " T-Height: " + strconv.Itoa(term.h)
 		term.cursor.move(term.activePanel.cursor.cx, term.activePanel.cursor.cy)
 		inp, _, _ := term.reader.ReadRune()
+		term.panels[len(term.panels)-1].text[2] = "Key: " + string(inp)
+
 		switch inp {
 		case esc:
 			help = false
@@ -109,9 +87,9 @@ func main() {
 			term.cursor.clear()
 			return
 		case ctrlV:
-			splitPanelVertically(&term)
+			term.splitPanel(vertical)
 		case ctrlS:
-			splitPanelHorizontally(&term)
+			term.splitPanel(horizontal)
 		case ctrlH:
 			help = !help
 		case plus:
@@ -135,16 +113,22 @@ func main() {
 			}
 		case cr:
 			t := term.activePanel
-			t.cursor.move(t.l, t.cursor.cy)
-			t.text = append(t.text, "")
-			t.col = 0
-			t.row++
+			if t.panelType == text {
+				t.cursor.move(t.l, t.cursor.cy)
+				t.text = append(t.text, "")
+				t.col = 0
+				t.row++
+			} else {
+				term.selection = t.text[t.row]
+			}
 		case del:
 			p := term.activePanel
-			p.updateCursorPosition(-1, 0)
-			p.line = p.line[:len(p.line)-1]
+			if p.panelType != menu {
+				p.updateCursorPosition(-1, 0)
+				p.line = p.line[:len(p.line)-1]
+			}
 		default:
-			if !help {
+			if term.activePanel.panelType != menu {
 				if inp == 'j' {
 					term.activePanel.updateCursorPosition(0, 1)
 				}
@@ -158,76 +142,28 @@ func main() {
 					term.activePanel.updateCursorPosition(-1, 0)
 				}
 			} else {
+				t := term.activePanel
 				if inp == 'j' {
-					h.row++
-					if h.row > len(h.text)-1 {
-						h.row = 0
+					t.row++
+					if t.row > len(t.text)-1 {
+						t.row = 0
 					}
 				}
 				if inp == 'k' {
-					h.row--
-					if h.row < 0 {
-						h.row = len(h.text) - 1
+					t.row--
+					if t.row < 0 {
+						t.row = len(t.text) - 1
 					}
 				}
 			}
-			// if !help {
-			// 	p := term.activePanel
-			// 	p.text[p.row] += string(inp)
-			// 	p.cursor.cx++
-			// 	p.col++
-			// } else {
-			// 	if inp == 'j' {
-			// 		h.t += 1
-			// 	} else if inp == 'k' {
-			// 		h.t -= 1
-			// 	} else if inp == 'h' {
-			// 		h.l -= 1
-			// 	} else if inp == 'l' {
-			// 		h.l += 1
-			// 	}
-			// }
 		}
-	}
-}
-
-func debug(t *Terminal) {
-	t.cursor.move(1, t.h-5)
-	fmt.Print("hello")
-}
-
-func splitPanelVertically(term *Terminal) {
-	p := term.activePanel
-	if p.w/2 > len(p.title) {
-		term.cursor.clear()
-		newPanel := Panel{}
-		if (p.w/2)%2 == 0 {
-			term.activePanel.w = p.w / 2
-		} else {
-			term.activePanel.w = (p.w - 1) / 2
-		}
-		p = term.activePanel
-		newPanel.init(p.t, p.l+p.w+2, p.w, p.h, "Panel")
-		term.panels = append(term.panels, newPanel)
-		term.activePanelIndex = len(term.panels) - 1
-	}
-}
-
-func splitPanelHorizontally(term *Terminal) {
-	p := term.activePanel
-	if p.h/2 > 5 {
-		term.cursor.clear()
-		newPanel := Panel{}
-		term.activePanel.h = p.h / 2
-		newPanel.init(p.t+p.h+2, p.l, p.w, p.h, "Panel")
-		term.panels = append(term.panels, newPanel)
-		term.activePanelIndex++
 	}
 }
 
 func createHelpPanel(t Terminal) Panel {
 	p := Panel{}
-	p.init(1, 1, t.w/2, 0, "Help")
+	p.init(3, 1, 0, 0, "Help")
+	p.border = 1
 	p.panelType = menu
 	p.text = []string{
 		"Escape: Close this menu",
@@ -238,15 +174,8 @@ func createHelpPanel(t Terminal) Panel {
 		"Tab: Move to the next panel",
 		"Shift-tab: Move to the previous panel",
 	}
-	p.h = len(p.text)
-	p.t = t.h / 3
-	if t.w/2 > len(p.text[len(p.text)-1]) {
-		p.w = t.w / 2
-		p.l = t.w / 3
-	} else {
-		p.w = len(p.text[len(p.text)-1])
-		p.l = 0
-	}
+	p.h = len(p.text) + p.border*2
+	p.w = len(p.text[len(p.text)-1])
 	p.row = 0
 	p.line = p.text[0]
 	return p

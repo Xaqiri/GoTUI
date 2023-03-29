@@ -2,29 +2,38 @@ package main
 
 import "fmt"
 
+type PanelType int
+
+const (
+	text = iota
+	menu
+)
+
 type Panel struct {
 	t, l, w, h       int
 	xoffset, yoffset int
 	col, row         int
 	title            string
 	text             []string
-	cursor           Cursor
+	cursor           *Cursor
 	line             string
 	panelType        PanelType
-	border           bool
+	border           int
+	menuItems        map[string]Panel
 }
 
 func (p *Panel) init(t, l, w, h int, title string) {
 	var cursor Cursor
-	if t == 0 {
+	if t < 1 {
 		t = 1
 	}
-	if l == 0 {
+	if l < 1 {
 		l = 1
 	}
-	p.cursor = cursor
+	p.cursor = &cursor
 	p.cursor.init(l, t)
 	p.t, p.l, p.w, p.h = t, l, w, h
+	p.border = 0
 	p.title = title
 	p.col, p.row = 0, 0
 	p.text = []string{""}
@@ -33,45 +42,41 @@ func (p *Panel) init(t, l, w, h int, title string) {
 }
 
 func (p *Panel) draw(t *Terminal) {
-	c := &t.cursor
-	padding := 2
-	if p.w > t.w {
-		p.w = t.w
+	p.drawContent(t)
+	if p.border != 0 {
+		// Draw top bar
+		t.cursor.move(p.l, p.t)
+		drawThinCorner("top-left")
+		drawHorizontalLine(p.w - len(p.title) - p.border*2)
+		fmt.Printf("%v", p.title)
+		drawThinCorner("top-right")
+		// Draw left bar
+		t.cursor.move(p.l, p.t+p.border)
+		drawLeftVerticalLine(p.h - p.border*2)
+		// Draw right bar
+		t.cursor.move(p.l+p.w-p.border, p.t+p.border)
+		if p.l+p.w > t.w {
+			drawRightVerticalLine(p.h - p.border*2)
+		} else {
+			drawLeftVerticalLine(p.h - p.border*2)
+		}
+		// Draw bottom bar
+		t.cursor.move(p.l, p.t+p.h-p.border)
+		drawThinCorner("bottom-left")
+		drawHorizontalLine(p.w - p.border*2)
+		drawThinCorner("bottom-right")
 	}
-	if p.h > t.h {
-		p.h = t.h
-	}
-	// Draw top bar
-	c.move(p.l, p.t)
-	drawThinCorner("top-left")
-	drawHorizontalLine(p.w - len(p.title) - padding)
-	fmt.Printf("%v", p.title)
-	drawThinCorner("top-right")
-	// Draw left bar
-	c.move(p.l, p.t+1)
-	drawLeftVerticalLine(p.h)
-	// Draw right bar
-	c.move(p.l+p.w-1, p.t+1)
-	if p.l+p.w-1 >= t.w {
-		drawRightVerticalLine(p.h)
-	} else {
-		drawLeftVerticalLine(p.h)
-	}
-	// Draw bottom bar
-	c.move(p.l, p.t+p.h+1)
-	drawThinCorner("bottom-left")
-	drawHorizontalLine(p.w - padding)
-	drawThinCorner("bottom-right")
 }
 
-func (p *Panel) drawContent() {
+func (p *Panel) drawContent(t *Terminal) {
 	x, y := p.cursor.cx, p.cursor.cy
+	active := (t.activePanel.title == p.title)
 	for i := 0; i < p.h; i++ {
-		p.cursor.move(p.l+1, p.t+i+1)
+		p.cursor.move(p.l+p.border, p.t+i+p.border)
 		if i > len(p.text)-1 {
 			break
 		}
-		if p.panelType == menu && i+p.yoffset == p.row {
+		if p.panelType == menu && active == true && i+p.yoffset == p.row {
 			fmt.Printf(reverseColors)
 			fmt.Print(p.text[i+p.yoffset])
 			fmt.Printf(resetColors)
