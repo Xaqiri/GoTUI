@@ -3,10 +3,16 @@ package main
 import "fmt"
 
 type PanelType int
+type BorderThickness int
 
 const (
 	text = iota
 	menu
+)
+
+const (
+	thin = iota
+	thick
 )
 
 type Panel struct {
@@ -19,6 +25,7 @@ type Panel struct {
 	line             string
 	panelType        PanelType
 	border           int
+	borderStyle      BorderThickness
 	menuItems        map[string]Panel
 	orientation      dir
 }
@@ -35,6 +42,7 @@ func (p *Panel) init(t, l, w, h int, title string) {
 	p.cursor.init(l, t)
 	p.t, p.l, p.w, p.h = t, l, w, h
 	p.border = 0
+	p.borderStyle = thin
 	p.title = title
 	p.col, p.row = 0, 0
 	p.text = []string{""}
@@ -47,54 +55,54 @@ func (p *Panel) draw(t *Terminal) {
 	if p.border != 0 {
 		// Draw top bar
 		t.cursor.move(p.l, p.t)
-		drawThinCorner("top-left")
-		drawHorizontalLine(p.w - len(p.title) - p.border*2)
+		drawCorner("top-left", p.borderStyle)
+		drawHorizontalLine(p.w-len(p.title)-p.border*2, p.borderStyle)
 		fmt.Printf("%v", p.title)
-		drawThinCorner("top-right")
+		drawCorner("top-right", p.borderStyle)
 		// Draw left bar
 		t.cursor.move(p.l, p.t+p.border)
-		drawLeftVerticalLine(p.h - p.border*2)
+		drawLeftVerticalLine(p.h-p.border*2, p.borderStyle)
 		// Draw right bar
 		t.cursor.move(p.l+p.w-p.border, p.t+p.border)
 		if p.l+p.w > t.w {
-			drawRightVerticalLine(p.h - p.border*2)
+			drawRightVerticalLine(p.h-p.border*2, p.borderStyle)
 		} else {
-			drawLeftVerticalLine(p.h - p.border*2)
+			drawLeftVerticalLine(p.h-p.border*2, p.borderStyle)
 		}
 		// Draw bottom bar
 		t.cursor.move(p.l, p.t+p.h-p.border)
-		drawThinCorner("bottom-left")
-		drawHorizontalLine(p.w - p.border*2)
-		drawThinCorner("bottom-right")
+		drawCorner("bottom-left", p.borderStyle)
+		drawHorizontalLine(p.w-p.border*2, p.borderStyle)
+		drawCorner("bottom-right", p.borderStyle)
 	}
 }
 
-func (p *Panel) drawHelp(t *Terminal) {
-	p.drawContent(t)
-	if p.border != 0 {
-		// Draw top bar
-		t.cursor.move(p.l, p.t)
-		drawThinCorner("left-t")
-		drawHorizontalLine(p.w - len(p.title) - p.border*2)
-		fmt.Printf("%v", p.title)
-		drawThinCorner("top-t")
-		// Draw left bar
-		t.cursor.move(p.l, p.t+p.border)
-		drawLeftVerticalLine(p.h - p.border*2)
-		// Draw right bar
-		t.cursor.move(p.l+p.w-p.border, p.t+p.border)
-		if p.l+p.w > t.w {
-			drawRightVerticalLine(p.h - p.border*2)
-		} else {
-			drawLeftVerticalLine(p.h - p.border*2)
-		}
-		// Draw bottom bar
-		t.cursor.move(p.l, p.t+p.h-p.border)
-		drawThinCorner("bottom-left")
-		drawHorizontalLine(p.w - p.border*2)
-		drawThinCorner("bottom-right")
-	}
-}
+// func (p *Panel) drawHelp(t *Terminal) {
+// 	p.drawContent(t)
+// 	if p.border != 0 {
+// 		// Draw top bar
+// 		t.cursor.move(p.l, p.t)
+// 		drawCorner("left-t")
+// 		drawHorizontalLine(p.w - len(p.title) - p.border*2)
+// 		fmt.Printf("%v", p.title)
+// 		drawCorner("top-t")
+// 		// Draw left bar
+// 		t.cursor.move(p.l, p.t+p.border)
+// 		drawLeftVerticalLine(p.h - p.border*2)
+// 		// Draw right bar
+// 		t.cursor.move(p.l+p.w-p.border, p.t+p.border)
+// 		if p.l+p.w > t.w {
+// 			drawRightVerticalLine(p.h - p.border*2)
+// 		} else {
+// 			drawLeftVerticalLine(p.h - p.border*2)
+// 		}
+// 		// Draw bottom bar
+// 		t.cursor.move(p.l, p.t+p.h-p.border)
+// 		drawCorner("bottom-left")
+// 		drawHorizontalLine(p.w - p.border*2)
+// 		drawCorner("bottom-right")
+// 	}
+// }
 
 func (p *Panel) drawContent(t *Terminal) {
 	x, y := p.cursor.cx, p.cursor.cy

@@ -19,23 +19,26 @@ func (t *Terminal) createMenuTestUi() {
 	topPanel := Panel{}
 	topPanel.init(1, 1, t.w, 3, "Title Bar")
 	topPanel.panelType = menu
+	topPanel.borderStyle = thick
 	topPanel.text = []string{"File", "Help"}
 	topPanel.menuItems = map[string]Panel{topPanel.text[0]: h}
 	topPanel.border = 1
 	topPanel.orientation = horizontal
-	// midPanel.init(4, 1, t.w, t.h-6, "Panel 0")
-	// midPanel.border = 1
-	// midPanel.text = []string{"", ""}
+	midPanel := Panel{}
+	midPanel.init(4, 1, t.w, t.h-6, "Panel 0")
+	midPanel.border = 1
+	midPanel.text = []string{"", ""}
+	midPanel.borderStyle = thick
 	// botPanel.init(t.h-2, 1, t.w, 3, "Info")
 	// botPanel.text = []string{"", "", ""}
 	// botPanel.border = 1
-	t.panels = []Panel{topPanel}
-	t.activePanelIndex = 0
+	t.panels = []Panel{topPanel, midPanel}
+	t.activePanelIndex = 1
 	t.activePanel = &t.panels[t.activePanelIndex]
 }
 
 func main() {
-	help, menuBar := false, true
+	help, menuBar := false, false
 	var term Terminal
 	term.init()
 	defer term.restore()
@@ -62,7 +65,7 @@ func main() {
 		}
 
 		if help {
-			term.activePanel.drawHelp(&term)
+			term.activePanel.draw(&term)
 		}
 
 		if term.activePanel.panelType != menu {
