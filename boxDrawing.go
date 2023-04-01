@@ -52,8 +52,6 @@ func drawLeftVerticalLine(length int, thickness BorderThickness) {
 		}
 		fmt.Printf("%s[B%s[D", string(esc), string(esc))
 	}
-	// fmt.Printf("\u25DF")
-	// fmt.Printf("%s[B%s[D", string(esc), string(esc))
 }
 
 func drawRightVerticalLine(length int, thickness BorderThickness) {
