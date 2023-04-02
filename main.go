@@ -15,10 +15,6 @@ package main
 // TODO: Add support for vertical and horizontal menu bars
 // TODO: Use a simple roguelike to test the library
 
-import (
-	"fmt"
-)
-
 type Map struct {
 	w, h   int
 	layout [][]Cell
@@ -42,26 +38,31 @@ func (m *Map) init(w, h int, player Entity) {
 		for x := 0; x < m.w; x++ {
 			if y == 0 || y == m.h-1 || x == 0 || x == m.w-1 {
 				m.layout[y][x] = wall
+			} else if x == player.x && y == player.y {
+				m.layout[player.y][player.x] = player.cell
 			} else {
-
 				m.layout[y][x] = floor
 			}
 		}
 	}
-	m.layout[player.y][player.x] = player.cell
+}
+
+func (m *Map) update(player Entity) {
+	for y := 0; y < m.h; y++ {
+		for x := 0; x < m.w; x++ {
+			if x == player.x && y == player.y {
+				m.layout[player.y][player.x] = player.cell
+			}
+		}
+	}
+
 }
 
 func (m *Map) move(g *Panel, p *Entity, dx, dy int) {
 	if m.layout[p.y+dy][p.x+dx].icon != block {
-		m.layout[p.y][p.x] = Cell{0x0020, white, black}
-		g.content[p.y][p.x] = Cell{0x0020, white, black}
-
+		m.layout[p.y][p.x] = Cell{0x0020, black, black}
 		p.x += dx
 		p.y += dy
-		m.layout[p.y][p.x] = p.cell
-		g.content[p.y][p.x] = p.cell
-	} else {
-		p.hp -= 1
 	}
 }
 
@@ -72,16 +73,15 @@ func main() {
 	term.cursor.clear()
 
 	gamePanel := Panel{}
-	gamePanel.init(3, 1, term.w, term.h, "Game", 0)
+	gamePanel.init(1, 1, term.w, term.h, "Game", 1)
 	term.panels = []Panel{gamePanel}
 	player := Entity{Cell{0x0040, white, black}, 1, 1, false, 10}
 	m := Map{}
 	m.init(30, 10, player)
 
 	gamePanel.addContent(m.layout)
-	fmt.Printf("%d %d%s", m.w, m.h, "\033[1E")
-	fmt.Printf("%d %d\n", gamePanel.w, gamePanel.h)
 	for {
+		m.update(player)
 		for _, p := range term.panels {
 			p.draw(&term)
 		}
@@ -102,6 +102,10 @@ func main() {
 			m.move(&gamePanel, &player, -1, 0)
 		case 'l':
 			m.move(&gamePanel, &player, 1, 0)
+		case 'w':
+			for i := 0; i < 10; i++ {
+				m.layout[5][3+i] = Cell{block, white, black}
+			}
 		}
 	}
 }
