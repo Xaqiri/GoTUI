@@ -2,6 +2,28 @@ package main
 
 import "fmt"
 
+const (
+	tlCorner = 0x256D
+	trCorner = 0x256E
+	blCorner = 0x2570
+	brCorner = 0x256F
+	vtLine   = 0x2502
+	hzLine   = 0x2500
+	space    = 0x0020
+	block    = 0x2588
+)
+
+const (
+	black = iota
+	red
+	green
+	yellow
+	blue
+	magenta
+	cyan
+	white
+)
+
 func drawCorner(corner string, thickness BorderThickness) {
 	if thickness == thin {
 		switch corner {
@@ -38,6 +60,16 @@ func drawCorner(corner string, thickness BorderThickness) {
 			fmt.Printf("\u255D")
 		}
 
+	}
+}
+
+func drawVerticalLine(length int, thickness BorderThickness) {
+	for i := 0; i < length; i++ {
+		if thickness == thin {
+			fmt.Printf("\u2502")
+		} else if thickness == thick {
+			fmt.Printf("\u2551")
+		}
 	}
 }
 

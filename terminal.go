@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -30,11 +31,15 @@ func (t *Terminal) init() {
 	t.writer = bufio.NewWriter(os.Stdout)
 	t.initialState, _ = term.MakeRaw(0)
 	t.activePanelIndex = 0
+	t.cursor.hideCursor()
 }
 
 func (t *Terminal) restore() {
+	t.cursor.move(1, 1)
+	t.cursor.clear()
 	t.cursor.showCursor()
 	term.Restore(0, t.initialState)
+	fmt.Println("")
 }
 
 func (t *Terminal) getSize() (int, int, error) {
@@ -57,8 +62,7 @@ func (t *Terminal) splitPanel(direction dir) {
 				w = t.activePanel.w - 1
 			}
 			p := t.activePanel
-			newPanel.init(p.t, l, w, p.h, "Panel "+strconv.Itoa(len(t.panels)))
-			newPanel.border = p.border
+			newPanel.init(p.t, l, w, p.h, "Panel "+strconv.Itoa(len(t.panels)), p.border)
 			t.panels = append(t.panels, newPanel)
 			t.activePanelIndex++
 		}
@@ -76,8 +80,7 @@ func (t *Terminal) splitPanel(direction dir) {
 				h = t.activePanel.h - 1
 			}
 			p := t.activePanel
-			newPanel.init(top, p.l, p.w, h, "Panel "+strconv.Itoa(len(t.panels)))
-			newPanel.border = p.border
+			newPanel.init(top, p.l, p.w, h, "Panel "+strconv.Itoa(len(t.panels)), p.border)
 			t.panels = append(t.panels, newPanel)
 			t.activePanelIndex++
 		}
