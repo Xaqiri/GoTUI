@@ -1,5 +1,7 @@
 package main
 
+import "strconv"
+
 // TODO: Add movement between panels with ^(hjkl)
 //       Might need to make Terminal.panels a linked list
 //       where each panel points left, right, up, and down
@@ -25,6 +27,10 @@ type Entity struct {
 	x, y   int
 	blocks bool
 	hp     int
+}
+
+func (e Entity) String() string {
+	return string(e.cell.icon) + " " + strconv.Itoa(e.x) + " " + strconv.Itoa(e.y)
 }
 
 func (m *Map) init(w, h int, player Entity) {
@@ -71,18 +77,25 @@ func main() {
 	term.init()
 	defer term.restore()
 	term.cursor.clear()
-
+	topPanel := Panel{}
+	topPanel.init(1, 1, term.w, 3, term.strToCells("Info"), 1)
 	gamePanel := Panel{}
-	gamePanel.init(1, 1, term.w, term.h, "Game", 1)
-	term.panels = []Panel{gamePanel}
+	gamePanel.init(4, 1, term.w, term.h-4, term.strToCells("Game"), 1)
+	term.panels = []Panel{topPanel, gamePanel}
 	player := Entity{Cell{0x0040, white, black}, 1, 1, false, 10}
 	m := Map{}
 	m.init(30, 10, player)
 
 	gamePanel.addContent(m.layout)
+	topPanel.addContent([][]Cell{term.strToCells(player.String())})
 	for {
+
 		m.update(player)
+		topPanel.clear([][]Cell{term.strToCells(player.String())})
+		gamePanel.clear(m.layout)
+
 		for _, p := range term.panels {
+
 			p.draw(&term)
 		}
 

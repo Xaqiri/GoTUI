@@ -11,12 +11,12 @@ const (
 
 type Panel struct {
 	t, l, w, h int
-	title      string
+	title      []Cell
 	border     int
 	content    [][]*Cell
 }
 
-func (p *Panel) init(t, l, w, h int, title string, border int) {
+func (p *Panel) init(t, l, w, h int, title []Cell, border int) {
 	if t < 1 {
 		t = 1
 	}
@@ -67,8 +67,7 @@ func (p *Panel) init(t, l, w, h int, title string, border int) {
 	}
 	start := p.w - len(p.title) - p.border
 	for i := 0; i < len(p.title); i++ {
-		p.content[0][start+i] = &Cell{int(p.title[i]), cyan, black}
-
+		p.content[0][start+i] = &p.title[i]
 	}
 }
 
@@ -80,6 +79,46 @@ func (p *Panel) addContent(content [][]Cell) {
 			p.content[y+p.border][x+p.border] = &content[y][x]
 		}
 	}
+}
+
+func (p *Panel) clear(content [][]Cell) {
+	for y := 0; y < p.h; y++ {
+		for x := 0; x < p.w; x++ {
+			if p.border == 1 {
+				if y == 0 {
+					switch x {
+					case 0:
+						p.content[y][x] = &Cell{tlCorner, white, black}
+					case p.w - 1:
+						p.content[y][x] = &Cell{trCorner, white, black}
+					default:
+						p.content[y][x] = &Cell{hzLine, white, black}
+					}
+				} else if y == p.h-1 {
+					switch x {
+					case 0:
+						p.content[y][x] = &Cell{blCorner, white, black}
+					case p.w - 1:
+						p.content[y][x] = &Cell{brCorner, white, black}
+					default:
+						p.content[y][x] = &Cell{hzLine, white, black}
+					}
+				} else {
+					switch x {
+					case 0:
+						p.content[y][x] = &Cell{vtLine, white, black}
+					case p.w - 1:
+						p.content[y][x] = &Cell{vtLine, white, black}
+					default:
+						p.content[y][x] = &Cell{block, black, white}
+					}
+				}
+			} else {
+				p.content[y][x] = &Cell{block, black, white}
+			}
+		}
+	}
+	p.addContent(content)
 }
 
 func (p *Panel) draw(t *Terminal) {

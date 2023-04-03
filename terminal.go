@@ -46,6 +46,14 @@ func (t *Terminal) getSize() (int, int, error) {
 	return term.GetSize(0)
 }
 
+func (t *Terminal) strToCells(str string) []Cell {
+	cells := make([]Cell, len(str))
+	for i := 0; i < len(str); i++ {
+		cells[i] = Cell{int(str[i]), white, black}
+	}
+	return cells
+}
+
 func (t *Terminal) splitPanel(direction dir) {
 	newPanel := Panel{}
 	if direction == vertical {
@@ -62,7 +70,7 @@ func (t *Terminal) splitPanel(direction dir) {
 				w = t.activePanel.w - 1
 			}
 			p := t.activePanel
-			newPanel.init(p.t, l, w, p.h, "Panel "+strconv.Itoa(len(t.panels)), p.border)
+			newPanel.init(p.t, l, w, p.h, t.strToCells("Panel "+strconv.Itoa(len(t.panels))), p.border)
 			t.panels = append(t.panels, newPanel)
 			t.activePanelIndex++
 		}
@@ -80,7 +88,7 @@ func (t *Terminal) splitPanel(direction dir) {
 				h = t.activePanel.h - 1
 			}
 			p := t.activePanel
-			newPanel.init(top, p.l, p.w, h, "Panel "+strconv.Itoa(len(t.panels)), p.border)
+			newPanel.init(top, p.l, p.w, h, t.strToCells("Panel "+strconv.Itoa(len(t.panels))), p.border)
 			t.panels = append(t.panels, newPanel)
 			t.activePanelIndex++
 		}
