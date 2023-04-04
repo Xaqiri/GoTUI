@@ -11,6 +11,7 @@ const (
 	hzLine   = 0x2500
 	space    = 0x0020
 	block    = 0x2588
+	// block = 0x002E
 )
 
 const (

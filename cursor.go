@@ -29,14 +29,31 @@ func (c *Cursor) clearLine() {
 }
 
 func (c *Cursor) move(x, y int) {
-	c.cx, c.cy = x, y
-	fmt.Printf("%s[%d;%dH", string(esc), y, x)
+	if x <= 1 {
+		c.cx = 1
+	} else {
+		c.cx = x
+	}
+	if y <= 1 {
+		c.cy = 1
+	} else {
+		c.cy = y
+	}
+	fmt.Printf("%s[%d;%dH", string(esc), c.cy, c.cx)
+}
+
+func (c *Cursor) up(num int) {
+	c.move(c.cx, c.cy-num)
+}
+
+func (c *Cursor) down(num int) {
+	c.move(c.cx, c.cy+num)
 }
 
 func (c *Cursor) left(num int) {
 	c.move(c.cx-num, c.cy)
 }
 
-func (c *Cursor) down(num int) {
-	c.move(c.cx, c.cy+num)
+func (c *Cursor) right(num int) {
+	c.move(c.cx+num, c.cy)
 }

@@ -47,6 +47,6 @@ const (
 type dir int
 
 const (
-	vertical = iota
+	vertical dir = iota
 	horizontal
 )
