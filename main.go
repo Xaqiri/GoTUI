@@ -1,5 +1,7 @@
 package main
 
+import "strconv"
+
 // TODO: Add movement between panels with ^(hjkl)
 //       Might need to make Terminal.panels a linked list
 //       where each panel points left, right, up, and down
@@ -35,28 +37,38 @@ func main() {
 	m := Panel{}
 	r := Panel{}
 	n := Panel{}
+	tree := Panel{}
 
 	t.init(1, 1, term.w, 3, term.strToCells("Panel"), 1)
 	m.init(4, 1, term.w-10, term.h-3, term.strToCells("Middle"), 1)
-	r.init(4, m.l+m.w, 10, term.h-3, term.strToCells("Right"), 1)
+	r.init(4, term.w-9, 10, term.h-3, term.strToCells("Right"), 1)
 	n.init(m.t+10, m.l+5, 10, 5, term.strToCells("New"), 1)
+	tree.init(1, 1, 20, term.h, term.strToCells("Explorer"), 1)
+	n.addContent([][]Cell{term.strToCells("New Panel")})
 
 	e := Entity{Cell{block, cyan, white}, 5, Cursor{1, 1, false}}
 	for {
-		if newPanel {
-			term.panels = []Panel{t, m, r, n}
-		} else {
+		term.clear()
+		if !newPanel {
 			term.panels = []Panel{t, m, r}
 		}
 
+		t.addContent([][]Cell{term.strToCells(strconv.Itoa(e.cursor.cx) + " " + strconv.Itoa(e.cursor.cy))})
+		m.addContent([][]Cell{term.strToCells("Hello")})
+		m.addContent([][]Cell{term.strToCells("Goodbye")})
+
 		for _, p := range term.panels {
+			p.clear()
 			term.addPanel(p)
 		}
+
 		if newPanel {
-			term.addPanel(n)
+			term.addPanel(tree)
 		}
 
+		// term.addText(1, 1, strconv.Itoa(e.cursor.cx)+" "+strconv.Itoa(e.cursor.cy))
 		term.content[e.cursor.cy-1][e.cursor.cx-1] = e.c
+
 		term.draw()
 
 		inp, _, _ := term.reader.ReadRune()
@@ -80,11 +92,11 @@ func main() {
 			// case '+':
 			// 	p.size += 1
 			// case '\u0020':
-			// 	for y := p.cursor.cy; y < p.cursor.cy+p.size; y++ {
-			// 		for x := p.cursor.cx; x < p.cursor.cx+p.size; x++ {
-			// 			term.content[y][x] = Cell{block, white, white}
-			// 		}
-			// 	}
+			// for y := e.cursor.cy; y < e.cursor.cy+e.size; y++ {
+			// for x := e.cursor.cx; x < e.cursor.cx+e.size; x++ {
+			// term.content[y][x] = Cell{block, white, white}
+			// }
+			// }
 		}
 	}
 }

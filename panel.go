@@ -5,7 +5,7 @@ package main
 type BorderThickness int
 
 const (
-	thin = iota
+	thin BorderThickness = iota
 	thick
 )
 
@@ -13,7 +13,7 @@ type Panel struct {
 	t, l, w, h    int
 	title         []Cell
 	border        int
-	content       [][]*Cell
+	content       [][]Cell
 	visualContent [][]Cell
 }
 
@@ -27,7 +27,7 @@ func (p *Panel) init(t, l, w, h int, title []Cell, border int) {
 	p.t, p.l, p.w, p.h = t, l, w, h
 	p.border = border
 	p.title = title
-
+	p.content = [][]Cell{[]Cell{Cell{block, black, black}}}
 	p.visualContent = make([][]Cell, p.h)
 	for y := 0; y < p.h; y++ {
 		p.visualContent[y] = make([]Cell, p.w)
@@ -66,24 +66,31 @@ func (p *Panel) init(t, l, w, h int, title []Cell, border int) {
 			}
 		}
 	}
-	start := p.w - len(p.title) - p.border
-	for i := 0; i < len(p.title); i++ {
-		p.visualContent[0][start+i] = p.title[i]
+	if p.border > 0 {
+		start := p.w - len(p.title) - p.border
+		for i := 0; i < len(p.title); i++ {
+			p.visualContent[0][start+i] = p.title[i]
+		}
 	}
 }
 
 func (p *Panel) addContent(content [][]Cell) {
 	// Add fix for content being larger than the panel
 	w, h := len(content[0]), len(content)
+	p.content = make([][]Cell, h)
 	for y := 0; y < h; y++ {
+		p.content[y] = make([]Cell, w)
 		for x := 0; x < w; x++ {
-			p.visualContent[y+p.border][x+p.border] = content[y][x]
+			p.content[y][x] = content[y][x]
+			p.visualContent[y+p.border][x+p.border] = p.content[y][x]
 		}
 	}
 }
 
-func (p *Panel) clear(content [][]Cell) {
+func (p *Panel) clear() {
+	p.visualContent = make([][]Cell, p.h)
 	for y := 0; y < p.h; y++ {
+		p.visualContent[y] = make([]Cell, p.w)
 		for x := 0; x < p.w; x++ {
 			if p.border == 1 {
 				if y == 0 {
@@ -119,7 +126,13 @@ func (p *Panel) clear(content [][]Cell) {
 			}
 		}
 	}
-	p.addContent(content)
+	if p.border > 0 {
+		start := p.w - len(p.title) - p.border
+		for i := 0; i < len(p.title); i++ {
+			p.visualContent[0][start+i] = p.title[i]
+		}
+	}
+	p.addContent(p.content)
 }
 
 func (p *Panel) draw(t *Terminal) {

@@ -35,7 +35,7 @@ func (t *Terminal) init() {
 	for y := 0; y < t.h; y++ {
 		t.content[y] = make([]Cell, t.w)
 		for x := 0; x < t.w; x++ {
-			t.content[y][x] = Cell{block, white, black}
+			t.content[y][x] = Cell{block, black, black}
 		}
 	}
 }
@@ -46,6 +46,14 @@ func (t *Terminal) restore() {
 	t.cursor.clear()
 	t.cursor.showCursor()
 	fmt.Println("")
+}
+
+func (t *Terminal) clear() {
+	for y := 0; y < t.h; y++ {
+		for x := 0; x < t.w; x++ {
+			t.content[y][x] = Cell{block, black, black}
+		}
+	}
 }
 
 func (t *Terminal) draw() {
@@ -70,10 +78,17 @@ func (t *Terminal) strToCells(str string) []Cell {
 	return cells
 }
 
+func (t *Terminal) addText(x, y int, str string) {
+	text := t.strToCells(str)
+	for i := 0; i < len(text); i++ {
+		t.content[y][x+i] = text[i]
+	}
+}
+
 func (t *Terminal) addPanel(p Panel) {
 	for y := 0; y < p.h; y++ {
 		for x := 0; x < p.w; x++ {
-			t.content[y+p.t-1][x+p.l-1] = p.visualContent[y][x]
+			t.content[y+p.t-p.border][x+p.l-p.border] = p.visualContent[y][x]
 		}
 	}
 }
