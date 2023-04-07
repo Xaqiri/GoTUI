@@ -14,17 +14,6 @@ const (
 	// block = 0x002E
 )
 
-const (
-	black = iota
-	red
-	green
-	yellow
-	blue
-	magenta
-	cyan
-	white
-)
-
 func drawCorner(corner string, thickness BorderThickness) {
 	if thickness == thin {
 		switch corner {

@@ -2,68 +2,95 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 
 	"golang.org/x/term"
 )
 
 type Terminal struct {
-	t, l         int
-	w, h         int
-	reader       *bufio.Reader
-	writer       *bufio.Writer
-	cursor       *Cursor
-	panels       []Panel
-	content      [][]Cell
-	initialState *term.State
-	panelIndex   int
+	t, l               int
+	w, h               int
+	reader             *bufio.Reader
+	writer             *bufio.Writer
+	csr                *Cursor
+	drawCursor         *Cursor
+	panels             []*Panel
+	content            [][]Cell
+	initialState       *term.State
+	panelIndex         int
+	colors             Colors
+	fg, bg, brFG, brBG color
 }
 
 func (t *Terminal) init() {
-	var cursor Cursor
+	var drawCursor Cursor
+	var csr Cursor
 	t.t, t.l = 1, 1
 	t.w, t.h, _ = term.GetSize(0)
-	t.cursor = &cursor
-	t.cursor.init(t.l, t.t)
+	t.drawCursor = &drawCursor
+	t.drawCursor.init(t.l, t.t)
+	t.csr = &csr
+	t.csr.init(t.l, t.t)
 	t.reader = bufio.NewReader(os.Stdin)
 	t.writer = bufio.NewWriter(os.Stdout)
 	t.initialState, _ = term.MakeRaw(0)
-	t.cursor.hideCursor()
+	t.drawCursor.hideCursor()
+	t.colors.init()
+	t.fg = t.colors.white
+	t.bg = t.colors.black
+	t.brFG = t.colors.brWhite
+	t.brBG = t.colors.brBlack
 
 	t.content = make([][]Cell, t.h)
 	for y := 0; y < t.h; y++ {
 		t.content[y] = make([]Cell, t.w)
 		for x := 0; x < t.w; x++ {
-			t.content[y][x] = Cell{block, black, black}
+			t.content[y][x] = Cell{space, t.fg, t.bg}
 		}
 	}
 }
 
 func (t *Terminal) restore() {
 	term.Restore(0, t.initialState)
-	t.cursor.move(0, 0)
-	t.cursor.clear()
-	t.cursor.showCursor()
-	fmt.Println("")
+	t.drawCursor.move(1, 1)
+	t.drawCursor.clear()
+	t.drawCursor.showCursor()
 }
 
 func (t *Terminal) clear() {
 	for y := 0; y < t.h; y++ {
 		for x := 0; x < t.w; x++ {
-			t.content[y][x] = Cell{block, black, black}
+			t.content[y][x] = Cell{space, t.fg, t.bg}
 		}
 	}
 }
 
+func (t *Terminal) update() {
+	for _, p := range t.panels {
+		p.clear()
+		t.addPanel(*p)
+	}
+}
+
 func (t *Terminal) draw() {
-	t.cursor.move(t.l, t.t)
+	t.drawCursor.hideCursor()
+	t.clear()
+	t.update()
+	t.drawCursor.move(t.l, t.t)
 	for y := 0; y < t.h; y++ {
 		for x := 0; x < t.w; x++ {
+			if y == t.csr.cy-1 {
+				t.content[y][x].bg = t.brBG
+				if t.content[y][x].icon == block {
+					t.content[y][x] = Cell{block, t.brBG, t.brBG}
+				}
+			}
 			t.content[y][x].draw()
 		}
-		t.cursor.move(t.l, t.t+y+1)
+		t.drawCursor.move(t.l, t.t+y+1)
 	}
+	t.drawCursor.move(t.csr.cx, t.csr.cy)
+	t.drawCursor.showCursor()
 }
 
 func (t *Terminal) getSize() (int, int, error) {
@@ -73,7 +100,7 @@ func (t *Terminal) getSize() (int, int, error) {
 func (t *Terminal) strToCells(str string) []Cell {
 	cells := make([]Cell, len(str))
 	for i := 0; i < len(str); i++ {
-		cells[i] = Cell{int(str[i]), white, black}
+		cells[i] = Cell{int(str[i]), t.fg, t.bg}
 	}
 	return cells
 }
@@ -86,9 +113,9 @@ func (t *Terminal) addText(x, y int, str string) {
 }
 
 func (t *Terminal) addPanel(p Panel) {
-	for y := 0; y < p.h; y++ {
-		for x := 0; x < p.w; x++ {
-			t.content[y+p.t-p.border][x+p.l-p.border] = p.visualContent[y][x]
+	for y := p.t; y < p.t+p.h; y++ {
+		for x := p.l; x < p.l+p.w; x++ {
+			t.content[y-1][x-1] = p.visualContent[y-p.t][x-p.l]
 		}
 	}
 }
@@ -98,7 +125,7 @@ func (t *Terminal) addPanel(p Panel) {
 // 	if direction == vertical {
 // 		if t.activePanel.w/2 > 10 {
 // 			var l, w int
-// 			t.cursor.clear()
+// 			t.drawCursor.clear()
 // 			if t.activePanel.w%2 == 0 {
 // 				t.activePanel.w /= 2
 // 				l = t.activePanel.l + t.activePanel.w
@@ -116,7 +143,7 @@ func (t *Terminal) addPanel(p Panel) {
 // 	} else if direction == horizontal {
 // 		if t.activePanel.h/2 > 10 {
 // 			var top, h int
-// 			t.cursor.clear()
+// 			t.drawCursor.clear()
 // 			if t.activePanel.h%2 == 0 {
 // 				t.activePanel.h /= 2
 // 				top = t.activePanel.t + t.activePanel.h

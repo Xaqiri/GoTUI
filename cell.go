@@ -4,8 +4,8 @@ import "fmt"
 
 type Cell struct {
 	icon int
-	fg   int
-	bg   int
+	fg   color
+	bg   color
 }
 
 func (c *Cell) draw() {

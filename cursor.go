@@ -5,6 +5,7 @@ import "fmt"
 type Cursor struct {
 	cx, cy int
 	hidden bool
+	style  int
 }
 
 func (c *Cursor) init(x, y int) {
@@ -18,6 +19,14 @@ func (c *Cursor) hideCursor() {
 
 func (c *Cursor) showCursor() {
 	fmt.Printf(show)
+}
+
+func (c *Cursor) savePos() {
+	fmt.Printf("\u001b[s")
+}
+
+func (c *Cursor) loadPos() {
+	fmt.Printf("\u001b[u")
 }
 
 func (c *Cursor) clear() {
